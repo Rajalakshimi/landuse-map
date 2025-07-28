@@ -1,0 +1,12 @@
+# Ignore poetry virtual environments
+__pycache__/
+*.pyc
+.env
+venv/
+.envrc
+.poetry/
+*.sqlite3
+.mypy_cache/
+*.log
+# Don't push data or large files
+data/*.geojson
