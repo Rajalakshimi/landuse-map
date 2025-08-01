@@ -8,5 +8,21 @@ venv/
 *.sqlite3
 .mypy_cache/
 *.log
+test_utils.py
 # Don't push data or large files
 data/*.geojson
+
+
+# Node/React
+node_modules/
+dist/
+.vite/
+frontend/node_modules/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDEs
+.vscode/
+.idea/
