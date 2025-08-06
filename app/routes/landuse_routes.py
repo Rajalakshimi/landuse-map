@@ -1,6 +1,6 @@
 from flask import send_file, request, jsonify, Response
 from flask_restx import Namespace, Resource
-from app.services.landuse_service import normalize_landuse_data
+from app.services.landuse_service import normalize_landuse_data, normalize_bundesland_landuse
 from app.services.file_export_service import export_formats
 from app.services.tiles_export_service import generate_pmtiles
 import geopandas as gpd
@@ -8,6 +8,12 @@ import os
 
 
 landuse_ns = Namespace("landuse", description="Landuse Queries")
+
+@landuse_ns.doc(params={
+    'bundesland': 'Name of the German state (e.g. Bayern)',
+    'landuse_type': 'Landuse category (e.g. forest, residential)',
+    'format': 'Export format (geojson, csv, shapefile, etc.)'
+})
 
 
 @landuse_ns.route("/tiles/<filename>")
@@ -84,4 +90,35 @@ class LanduseByType(Resource):
         except Exception as e:
             return {"error":str(e)}, 500
 
+@landuse_ns.route("/<string:bundesland>/<string:landuse_type>")
+class LanduseByBundesland(Resource):
+    def get(self, bundesland, landuse_type):
+        format = request.args.get("format","geojson").lower()
+        
+        # valid_formats = {"geojson", "csv", "shapefile", "parquet"}
+        # if format not in valid_formats:
+        #     return {"error": f"Unsupported format '{format}'"}, 400
 
+        if not bundesland or not landuse_type:
+            return {"error": "Missing Bundesland Name"}, 400
+        
+        try:
+            df = normalize_bundesland_landuse(bundesland,landuse_type)
+            print(df)
+            if df.empty:
+                return {"error": "No data found"}
+            # pmtiles_path = generate_pmtiles(df)
+            # filename = os.path.basename(pmtiles_path)
+            result = export_formats(df, format)
+            
+            if format == "geojson":
+                return {
+                    "data": result,  # this is a JSON-serializable dict
+                    #"pmtiles_url": f"/landuse/tiles/{filename}"
+                }
+
+            return result
+
+        except Exception as e:
+            return {"error": str(e)}, 500 
+    

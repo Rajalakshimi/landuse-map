@@ -1,18 +1,56 @@
-from app.utils.utils import get_landuse_data,load_bundesland_boundaries
+from app.utils.utils import get_landuse_data,load_bundesland_boundaries,get_landuse_data_by_bundesland
 import pandas as pd
 import geopandas as gpd
 
 import uuid
 from shapely import Polygon, LineString
+from shapely.geometry import shape
 
 
-def normalize_landuse_data(bbox,landuse_type):
-    
+def normalize_landuse_data(bbox,landuse_type):   
     json_data = get_landuse_data(bbox,landuse_type)
-    col = ['id','osm_id','name','landuse_type','leisure','city','area','geometry']    
-    df = pd.DataFrame(columns=col)
+    try:
+        df = parse_overpass_json_data(json_data)
+    except Exception as e:
+        raise RuntimeError(f"Error: {e}")
+    return df
+            
+def normalize_bundesland_landuse(bundesland,landuse_type):             
+    bundesland_df = load_bundesland_boundaries()
+    bundesland_gdf = gpd.GeoDataFrame(bundesland_df, geometry='geometry', crs='EPSG:4326')
+    
+    selected = bundesland_gdf[bundesland_gdf['bundesland'].str.lower() == bundesland.lower()]
+    if selected.empty:
+        raise ValueError(f"{bundesland} not found in boundary data.")
+    boundary = selected.geometry.unary_union  
+    json_data = get_landuse_data_by_bundesland(bundesland,landuse_type)
+    
+    try:
+        df = parse_overpass_json_data(json_data)
+    except Exception as e:
+        raise RuntimeError(f"Error: {e}")
+    
+    gdf = gpd.GeoDataFrame(df, geometry='geometry', crs ='EPSG:4326')
+    gdf = gdf.to_crs("EPSG:4326")
+    #gdf.to_file("gdf.geojson", driver="GeoJSON")
+    #gpd.GeoDataFrame(geometry=[boundary], crs="EPSG:4326").to_file("boundary.geojson", driver="GeoJSON")
+    
+    boundary_buffered = boundary.buffer(0.0005)  # about 50m
+    gdf_clipped = gdf[gdf.within(boundary_buffered)]
+    
+    # print("gdf bounds:", gdf.total_bounds)
+    # print("boundary bounds:", boundary.bounds)
+    
+    keep_cols = ["id", "osm_id", "name", "landuse_type", "leisure", "city", "area", "geometry"]
+    df_cleaned = gdf_clipped[keep_cols] if not gdf_clipped.empty else gdf_clipped
+
+    return df_cleaned
+       
+    
+def parse_overpass_json_data(json_data):   
+    data = []
         
-    for item in json_data['elements']: 
+    for item in json_data['elements'][:100]: 
         tags = item.get("tags")        
         if not tags or "landuse" not in tags:
             continue      
@@ -25,13 +63,12 @@ def normalize_landuse_data(bbox,landuse_type):
         if coords[0] == coords[-1] and len(coords) >=4:
             geom = Polygon(coords)
         else:
-            geom = LineString(coords)
+            continue
        
-        gdf = gpd.GeoDataFrame([{"geometry": geom}], crs="EPSG:4326")
-        gdf = gdf.to_crs("EPSG:3857")
-        area = gdf['geometry'].area.values[0]
+        temp_gdf = gpd.GeoDataFrame([{"geometry": geom}], crs="EPSG:4326").to_crs("EPSG:3857")
+        area = temp_gdf['geometry'].area.values[0]
                 
-        data = {
+        data.append({
             "id": str(uuid.uuid1()),
             "osm_id": item.get("id"),
             "name": tags.get("name") or None,
@@ -40,13 +77,9 @@ def normalize_landuse_data(bbox,landuse_type):
             "city": tags.get("addr:city") or tags.get("is_in"),
             "area" : area,
             "geometry" : geom
-        }
+        })
         
-        df = pd.concat([df, pd.DataFrame([data])], ignore_index=True)
-        
-    return df
-            
-                
-       
+        df = pd.DataFrame(data)
     
-        
+    
+    return df
