@@ -10,7 +10,12 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@headlessui/react": "^2.2.7",
+    "@headlessui/vue": "^1.7.23",
+    "@heroicons/react": "^2.2.0",
     "ol": "^10.6.1",
+    "ol-pmtiles": "^2.0.2",
+    "pmtiles": "^4.3.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0"
   },
