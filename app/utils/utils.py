@@ -5,29 +5,6 @@ import pandas as  pd
 import geopandas as gpd
 from shapely import Polygon, MultiPolygon
 
-def get_landuse_data(bbox,landuse_type):  
-    landuse_type = landuse_type.lower()
-    
-    if landuse_type == "all": 
-        overpass_query = f"""[out:json][timeout:30];(
-                        way["landuse"]({bbox[0]},{bbox[1]},{bbox[2]},{bbox[3]});
-                        relation["landuse"]["type"="multipolygon"]({bbox[0]},{bbox[1]},{bbox[2]},{bbox[3]});
-                        );out geom;>;out qt;"""
-    else:
-        overpass_query = f"""[out:json][timeout:30];(
-                        way["landuse"]({bbox[0]},{bbox[1]},{bbox[2]},{bbox[3]});
-                        relation["landuse"="{landuse_type}"]["type"="multipolygon"]({bbox[0]},{bbox[1]},{bbox[2]},{bbox[3]});
-                        );out geom;>;out qt;"""
-        
-    
-    url = "https://overpass-api.de/api/interpreter"
-    response = requests.post(url, data={"data":overpass_query})
-    
-    if response.status_code != 200:
-        raise Exception(f"Overpass API error:{response.status_code}")
-      
-    return response.json()
-    
 
 def load_bundesland_boundaries():  
     json_file = os.path.join("data","bundesland_boundaries.json")
@@ -56,10 +33,60 @@ def load_bundesland_boundaries():
             'geometry': geom
         })
         df = pd.DataFrame(rows)
-
+        print(df)
     return df
 
-def get_landuse_data_by_bundesland(bundesland_ip,landuse_type):
+    
+    
+def get_landuse_data(bbox, landuse_type, geometry_type):
+    landuse_type = landuse_type.lower()
+    geometry_type = str(geometry_type).lower()
+
+    # Base filter
+    landuse_filter = f'["landuse"="{landuse_type}"]' if landuse_type != "all" else '["landuse"]'
+
+    # Geometry handling
+    if geometry_type == "point":
+        overpass_query = f"""
+        [out:json][timeout:30];
+        node{landuse_filter}({bbox[0]},{bbox[1]},{bbox[2]},{bbox[3]});
+        out geom;
+        """
+    elif geometry_type in ["polygon", "multipolygon"]:
+        overpass_query = f"""
+        [out:json][timeout:30];
+        (
+          way{landuse_filter}({bbox[0]},{bbox[1]},{bbox[2]},{bbox[3]});
+          relation{landuse_filter}["type"="multipolygon"]({bbox[0]},{bbox[1]},{bbox[2]},{bbox[3]});
+        );
+        out geom; >; out qt;
+        """
+    else:  # "All" → fetch everything relevant (landuse + natural + leisure)
+        overpass_query = f"""
+        [out:json][timeout:30];
+        (
+        way["landuse"]({bbox[0]},{bbox[1]},{bbox[2]},{bbox[3]});
+        relation["landuse"]({bbox[0]},{bbox[1]},{bbox[2]},{bbox[3]});
+        way["natural"]({bbox[0]},{bbox[1]},{bbox[2]},{bbox[3]});
+        relation["natural"]({bbox[0]},{bbox[1]},{bbox[2]},{bbox[3]});
+        way["leisure"]({bbox[0]},{bbox[1]},{bbox[2]},{bbox[3]});
+        relation["leisure"]({bbox[0]},{bbox[1]},{bbox[2]},{bbox[3]});
+        );
+        out geom; >; out qt;"""
+
+    url = "https://overpass-api.de/api/interpreter"
+    response = requests.post(url, data={"data": overpass_query}, timeout=600)
+
+    if response.status_code != 200:
+        raise Exception(f"Overpass API error: {response.status_code}")
+
+    return response.json()
+
+
+def get_landuse_data_by_bundesland(bundesland_ip,landuse_type,geometry_type):
+    landuse_type = landuse_type.lower()
+    geometry_type = str(geometry_type).lower()
+    
     bundesland_df = load_bundesland_boundaries()
     bundesland_gdf = gpd.GeoDataFrame(bundesland_df, geometry="geometry", crs="EPSG:4326")
     selected_row = bundesland_gdf[bundesland_gdf['bundesland'].str.lower() == bundesland_ip.lower()]
@@ -71,26 +98,43 @@ def get_landuse_data_by_bundesland(bundesland_ip,landuse_type):
     bbox = [min_y, min_x, max_y, max_x]
     print(f"print bindesand bbox:{bbox}")
     
-    landuse_type = landuse_type.lower()
     
-    if landuse_type == "all": 
-        overpass_query = f"""[out:json][timeout:30];(
-                        way["landuse"]({bbox[0]},{bbox[1]},{bbox[2]},{bbox[3]});
-                        relation["landuse"]["type"="multipolygon"]({bbox[0]},{bbox[1]},{bbox[2]},{bbox[3]});
-                        );out geom;>;out qt;"""
-    else:
-        overpass_query = f"""[out:json][timeout:30];(
-                        way["landuse"]({bbox[0]},{bbox[1]},{bbox[2]},{bbox[3]});
-                        relation["landuse"="{landuse_type}"]["type"="multipolygon"]({bbox[0]},{bbox[1]},{bbox[2]},{bbox[3]});
-                        );out geom;>;out qt;"""
-        
-    
+    # Base filter
+    landuse_filter = f'["landuse"="{landuse_type}"]' if landuse_type != "all" else '["landuse"]'
+
+    # Geometry handling
+    if geometry_type == "point":
+        overpass_query = f"""
+        [out:json][timeout:30];
+        node{landuse_filter}({bbox[0]},{bbox[1]},{bbox[2]},{bbox[3]});
+        out geom;
+        """
+    elif geometry_type in ["polygon", "multipolygon"]:
+        overpass_query = f"""
+        [out:json][timeout:30];
+        (
+          way{landuse_filter}({bbox[0]},{bbox[1]},{bbox[2]},{bbox[3]});
+          relation{landuse_filter}["type"="multipolygon"]({bbox[0]},{bbox[1]},{bbox[2]},{bbox[3]});
+        );
+        out geom; >; out qt;
+        """
+    else:  # "All" → fetch everything relevant (landuse + natural + leisure)
+        overpass_query = f"""
+        [out:json][timeout:30];
+        (
+        way["landuse"]({bbox[0]},{bbox[1]},{bbox[2]},{bbox[3]});
+        relation["landuse"]({bbox[0]},{bbox[1]},{bbox[2]},{bbox[3]});
+        way["natural"]({bbox[0]},{bbox[1]},{bbox[2]},{bbox[3]});
+        relation["natural"]({bbox[0]},{bbox[1]},{bbox[2]},{bbox[3]});
+        way["leisure"]({bbox[0]},{bbox[1]},{bbox[2]},{bbox[3]});
+        relation["leisure"]({bbox[0]},{bbox[1]},{bbox[2]},{bbox[3]});
+        );
+        out geom; >; out qt;"""
+
     url = "https://overpass-api.de/api/interpreter"
-    response = requests.post(url, data={"data":overpass_query})
-    
+    response = requests.post(url, data={"data": overpass_query}, timeout=600)
+
     if response.status_code != 200:
-        raise Exception(f"Overpass API error:{response.status_code}")
-      
+        raise Exception(f"Overpass API error: {response.status_code}")
+
     return response.json()
-    
-    

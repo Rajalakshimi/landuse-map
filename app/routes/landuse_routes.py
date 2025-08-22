@@ -5,120 +5,60 @@ from app.services.file_export_service import export_formats
 from app.services.tiles_export_service import generate_pmtiles
 import geopandas as gpd
 import os
-
+from pathlib import Path
+APP_DIR = Path(__file__).resolve().parents[1]
+STATIC_DIR = APP_DIR / "static" / "tiles"
 
 landuse_ns = Namespace("landuse", description="Landuse Queries")
-
-@landuse_ns.doc(params={
-    'bundesland': 'Name of the German state (e.g. Bayern)',
-    'landuse_type': 'Landuse category (e.g. forest, residential)',
-    'format': 'Export format (geojson, csv, shapefile, etc.)'
-})
-
-
-@landuse_ns.route("/tiles/<filename>")
-class ServeTiles(Resource):
-    def get(self, filename):
-        path = os.path.join("tmp", filename)
-        return send_file(path, mimetype="application/vnd.mapbox-vector-tile")
-
-@landuse_ns.route("/all")
-class LanduseAll(Resource):
+        
+@landuse_ns.route("/filter")
+class LanduseFilter(Resource):
     def get(self):
-        format = request.args.get("format","geojson").lower()
-        bbox_str = request.args.get("bbox","52.515,13.375,52.525,13.385") #temp values
-        if not bbox_str:
-            return {"error": "Missing bbox"}, 400
-        try:
-            bbox = tuple(map(float,bbox_str.split(",")))
-            if len(bbox) != 4:
-                raise ValueError
-        except ValueError:
-            return {"error":"Invalid bbox format"}, 400
-        
-        try:
-            df = normalize_landuse_data(bbox,landuse_type="all")
-            print(df)
-            if df.empty:
-                return {"error": "No data found"}
-            
-            # pmtiles_path = generate_pmtiles(df)
-            # filename = os.path.basename(pmtiles_path)
-            
-            result = export_formats(df, format)
-            
-            if format == "geojson":
-                return {
-                    "data": result,  # this is a JSON-serializable dict
-                    #"pmtiles_url": f"/landuse/tiles/{filename}"
-                }
+        landuse_type = request.args.get("landuse_type")
+        geometry_type = request.args.get("geometry")
+        bbox_str = request.args.get("bbox")
+        bundesland = request.args.get("bundesland")
 
-            return result
+        if bbox_str:
+            try:
+                bbox = tuple(map(float, bbox_str.split(",")))
+            except ValueError:
+                return {"error": "Invalid bbox format"}, 400
+            df = normalize_landuse_data(bbox, landuse_type, geometry_type)
+        elif bundesland:
+            from app.services.landuse_service import normalize_bundesland_landuse
+            df = normalize_bundesland_landuse(bundesland, landuse_type, geometry_type)
+        else:
+            return {"error": "Missing bbox or bundesland"}, 400
 
-        except Exception as e:
-            return {"error":str(e)}, 500
-    
-@landuse_ns.route("/<string:landuse_type>")
-class LanduseByType(Resource):
-    def get(self,landuse_type):
-        format = request.args.get("format","geojson").lower()
-        bbox_str = request.args.get("bbox","52.515,13.375,52.525,13.385") #temp values
-        if not bbox_str:
-            return {"error": "Missing bbox"}, 400
-        try:
-            bbox = tuple(map(float,bbox_str.split(",")))
-            if len(bbox) != 4:
-                raise ValueError
-        except ValueError:
-            return {"error":"Invalid bbox format"}, 400
-        try:
-            df = normalize_landuse_data(bbox,landuse_type)
-            if df.empty:
-                return {"error": "No data found"}
-            # pmtiles_path = generate_pmtiles(df)
-            # filename = os.path.basename(pmtiles_path)
-            
-            result = export_formats(df, format)
-            
-            if format == "geojson":
-                return {
-                    "data": result,  # this is a JSON-serializable dict
-                    #"pmtiles_url": f"/landuse/tiles/{filename}"
-                }
+        if df.empty:
+            return {"message": "No landuse features found for the selected options"}, 400
 
-            return result
-        except Exception as e:
-            return {"error":str(e)}, 500
+        # Generate PMTiles
+        pmtiles_path = generate_pmtiles(df)
+        pmtiles_url = f"/static/tiles/{Path(pmtiles_path).name}"
 
-@landuse_ns.route("/<string:bundesland>/<string:landuse_type>")
-class LanduseByBundesland(Resource):
-    def get(self, bundesland, landuse_type):
-        format = request.args.get("format","geojson").lower()
-        
-        # valid_formats = {"geojson", "csv", "shapefile", "parquet"}
-        # if format not in valid_formats:
-        #     return {"error": f"Unsupported format '{format}'"}, 400
+        return {"pmtiles_url": pmtiles_url}
 
-        if not bundesland or not landuse_type:
-            return {"error": "Missing Bundesland Name"}, 400
-        
-        try:
-            df = normalize_bundesland_landuse(bundesland,landuse_type)
-            print(df)
-            if df.empty:
-                return {"error": "No data found"}
-            # pmtiles_path = generate_pmtiles(df)
-            # filename = os.path.basename(pmtiles_path)
-            result = export_formats(df, format)
-            
-            if format == "geojson":
-                return {
-                    "data": result,  # this is a JSON-serializable dict
-                    #"pmtiles_url": f"/landuse/tiles/{filename}"
-                }
+@landuse_ns.route("/download")
+class LanduseDownload(Resource):
+    def get(self):
+        landuse_type = request.args.get("landuse_type", "all")
+        geometry_type = request.args.get("geometry_type", "")
+        format = request.args.get("format", "").lower()
+        bbox_str = request.args.get("bbox")
+        bundesland = request.args.get("bundesland")
 
-            return result
+        if bbox_str:
+            bbox = tuple(map(float, bbox_str.split(",")))
+            df = normalize_landuse_data(bbox, landuse_type,geometry_type)
+        elif bundesland:
+            df = normalize_bundesland_landuse(bundesland, landuse_type,geometry_type)
+        else:
+            return {"error": "Missing bbox or bundesland"}, 400
 
-        except Exception as e:
-            return {"error": str(e)}, 500 
-    
+        if df.empty:
+            return {"message": "No landuse features found for the selected options"}, 400
+
+        return export_formats(df, format)         
+

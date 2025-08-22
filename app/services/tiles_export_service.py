@@ -1,25 +1,48 @@
-import uuid
+from pathlib import Path
 import geopandas as gpd
+import uuid
 import os
 import subprocess
 
-def generate_pmtiles(df, output_dir:str="tmp"):
-    
-    gdf = gpd.GeoDataFrame(df, geometry='geometry',crs="EPSG:4326")
-    os.makedirs(output_dir, exist_ok=True)
-    geojson_path = f"{output_dir}/landuse_{uuid.uuid4().hex}.geojson"
-    pmtiles_path = geojson_path.replace(".geojson",".pmtiles")
+from pathlib import Path
+
+# Resolve /app/app as base (since __file__ is inside /app/app/services)
+APP_DIR = Path(__file__).resolve().parents[1]   # /app/app
+STATIC_DIR = APP_DIR / "static" / "tiles"
+
+def generate_pmtiles(df, output_dir: Path = STATIC_DIR):
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    stem = f"landuse_{uuid.uuid4().hex}"
+    geojson_path = output_dir / f"{stem}.geojson"
+    pmtiles_path = output_dir / f"{stem}.pmtiles"
+
+    gdf = gpd.GeoDataFrame(df, geometry="geometry", crs="EPSG:4326")
     gdf.to_file(geojson_path, driver="GeoJSON")
 
     try:
-        subprocess.run(
-            ["tippecanoe", "-o", pmtiles_path, geojson_path],
-            check=True
+        proc = subprocess.run(
+            [
+                "tippecanoe",
+                "-o", str(pmtiles_path),
+                str(geojson_path),
+                "--force",
+                "--minimum-zoom=5",          # overview
+                "--maximum-zoom=14",         # detailed
+                "--drop-densest-as-needed",  # thin very dense data
+                "--coalesce-densest-as-needed"
+            ],
+            capture_output=True,
+            text=True
         )
-    except subprocess.CalledProcessError as e:
-        raise RuntimeError("Tippecanoe failed to generatw PMTiles") from e
-    
-    if not os.path.exists(pmtiles_path):
-        raise RuntimeError("PMTiles file was not created")
-    print(f"pmtiles_path:{pmtiles_path}")
-    return pmtiles_path
+        if proc.returncode != 0:
+            raise RuntimeError(f"Tippecanoe failed:\n{proc.stderr}")
+
+        with open(pmtiles_path, "rb") as f:
+            if f.read(4) != b"PMTi":
+                raise RuntimeError(f"{pmtiles_path} is not valid PMTiles")
+    finally:
+        if geojson_path.exists():
+            geojson_path.unlink()
+
+    return str(pmtiles_path)

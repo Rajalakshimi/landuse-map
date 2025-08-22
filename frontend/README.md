@@ -1,12 +1,54 @@
-# React + Vite
+Landuse Mapping
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+An interactive land use map built from OpenStreetMap (OSM) data.
+This web application allows users to filter, visualize, and download land use data by:
 
-Currently, two official plugins are available:
+Bundesland (state)
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+Landuse type
 
-## Expanding the ESLint configuration
+Geometry type
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+Custom bounding box (BBox)
+
+The filtered data can be exported in multiple formats: GeoJSON, CSV, Shapefile, GeoParquet, and FlatGeobuf.
+
+🚀 Tech Stack
+
+Backend: Python, Flask, Docker
+
+Frontend: React.js, Vite, OpenLayers
+
+I chose Flask for the backend since the processing requirements are lightweight and only a few endpoints are needed.
+On the frontend, React + OpenLayers provide efficient rendering of geospatial data and also gave me an opportunity to strengthen my frontend skills.
+
+⚡ Optimization & Challenges
+
+One of the main motivations was solving a problem I faced as a GIS analyst:
+When downloading OSM data, I often had to fetch large files (e.g., from Geofabrik) and then filter them manually.
+
+This app makes it possible to download only the required data directly in the desired format.
+
+Challenges & bottlenecks:
+
+Downloading large bounding boxes (e.g., whole states) from Overpass API is slow.
+
+Possible future solutions:
+
+Use PBF extracts from Geofabrik instead of Overpass.
+
+Split large states into smaller bounding boxes before sending data to the frontend.
+
+📝 Takeaways
+
+Backend development (structuring endpoints, exporting formats) was straightforward.
+
+Frontend had a bigger learning curve, especially with:
+
+PMTiles integration
+
+Drawing and managing bounding boxes (state management issues)
+
+I eventually solved these by [briefly explain fix here → e.g., resetting map state, cursor handling, or global state management].
+
+🎥 Demo

@@ -3,19 +3,19 @@ import pandas as pd
 import geopandas as gpd
 
 import uuid
-from shapely import Polygon, LineString
-from shapely.geometry import shape
+from shapely import Polygon, Point, LineString
 
 
-def normalize_landuse_data(bbox,landuse_type):   
-    json_data = get_landuse_data(bbox,landuse_type)
+
+def normalize_landuse_data(bbox,landuse_type,geometry_type):   
+    json_data = get_landuse_data(bbox,landuse_type,geometry_type)
     try:
         df = parse_overpass_json_data(json_data)
     except Exception as e:
         raise RuntimeError(f"Error: {e}")
     return df
             
-def normalize_bundesland_landuse(bundesland,landuse_type):             
+def normalize_bundesland_landuse(bundesland,landuse_type,geometry_type):             
     bundesland_df = load_bundesland_boundaries()
     bundesland_gdf = gpd.GeoDataFrame(bundesland_df, geometry='geometry', crs='EPSG:4326')
     
@@ -23,7 +23,7 @@ def normalize_bundesland_landuse(bundesland,landuse_type):
     if selected.empty:
         raise ValueError(f"{bundesland} not found in boundary data.")
     boundary = selected.geometry.unary_union  
-    json_data = get_landuse_data_by_bundesland(bundesland,landuse_type)
+    json_data = get_landuse_data_by_bundesland(bundesland,landuse_type,geometry_type)
     
     try:
         df = parse_overpass_json_data(json_data)
@@ -50,7 +50,7 @@ def normalize_bundesland_landuse(bundesland,landuse_type):
 def parse_overpass_json_data(json_data):   
     data = []
         
-    for item in json_data['elements'][:100]: 
+    for item in json_data['elements']: 
         tags = item.get("tags")        
         if not tags or "landuse" not in tags:
             continue      
@@ -60,13 +60,25 @@ def parse_overpass_json_data(json_data):
         if not coords:
            continue
         
-        if coords[0] == coords[-1] and len(coords) >=4:
-            geom = Polygon(coords)
+        if item["type"] == "node":
+            geom = Point(coords) if coords else None
+        elif item["type"] == "way":
+            if coords[0] == coords[-1] and len(coords) >=4:
+                geom = Polygon(coords)
+            elif coords:
+                geom = LineString(coords) 
+        elif item["type"] == "relation": 
+            if coords and coords[0] == coords[-1] and len(coords) >= 4:
+                geom = Polygon(coords)  
+            else:
+                geom = None
         else:
-            continue
-       
-        temp_gdf = gpd.GeoDataFrame([{"geometry": geom}], crs="EPSG:4326").to_crs("EPSG:3857")
-        area = temp_gdf['geometry'].area.values[0]
+            geom = None
+
+        area = None
+        if geom.geom_type in ["Polygon", "MultiPolygon"]:
+            temp_gdf = gpd.GeoDataFrame([{"geometry": geom}], crs="EPSG:4326").to_crs("EPSG:3857")
+            area = temp_gdf['geometry'].area.values[0]
                 
         data.append({
             "id": str(uuid.uuid1()),
@@ -80,6 +92,8 @@ def parse_overpass_json_data(json_data):
         })
         
         df = pd.DataFrame(data)
-    
+        
+        if df is None:
+            print(f"df in parse json:{df}")
     
     return df
