@@ -68,6 +68,7 @@ function App() {
         mapRef.current?.showPmtiles(fullUrl);
         setNotification(null);
         mapRef.current?.resetCursor();
+        setDrawTrigger(0);
       } else {
         mapRef.current?.clearPmtiles?.();
       }

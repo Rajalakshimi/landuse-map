@@ -37,7 +37,7 @@ function getColor(props) {
     case "industrial":
       return "rgba(128,128,128,0.4)";
     default:
-      return "rgba(200,200,200,0.4)"; 
+      return "rgba(200,200,200,0.4)";
   }
 }
 
@@ -55,6 +55,7 @@ const LanduseMap = forwardRef(function LanduseMap(
   // popup
   const popupRef = useRef();
   const popupOverlayRef = useRef();
+  const pmtilesLoadedRef = useRef(false); 
 
   useImperativeHandle(ref, () => ({
     showPmtiles: (pmtilesUrl) => {
@@ -81,30 +82,7 @@ const LanduseMap = forwardRef(function LanduseMap(
 
       mapRef.current.addLayer(vtLayer);
       pmtilesLayerRef.current = vtLayer;
-
-      // popup only when pmtiles loaded
-      mapRef.current.on("singleclick", (evt) => {
-        const features = [];
-        mapRef.current.forEachFeatureAtPixel(evt.pixel, (feature) => {
-          features.push(feature);
-        });
-
-        if (features.length > 0) {
-          const props = features[0].getProperties();
-          const coord = evt.coordinate;
-          popupRef.current.innerHTML = `
-            <div style="font-size:12px">
-              <b>${props.name || "Unnamed"}</b><br/>
-              Landuse: ${props.landuse_type || "Unknown"}<br/>
-              Leisure: ${props.leisure || "-"}<br/>
-              City: ${props.city || "-"}<br/>
-              OSM ID: ${props.osm_id || "-"}
-            </div>`;
-          popupOverlayRef.current.setPosition(coord);
-        } else {
-          popupOverlayRef.current.setPosition(undefined);
-        }
-      });
+      pmtilesLoadedRef.current = true;
     },
     clearPmtiles: () => {
       if (mapRef.current && pmtilesLayerRef.current) {
@@ -112,6 +90,7 @@ const LanduseMap = forwardRef(function LanduseMap(
         pmtilesLayerRef.current = null;
         popupOverlayRef.current?.setPosition(undefined);
       }
+      pmtilesLoadedRef.current = false;
     },
     clearBBox: () => {
       drawSourceRef.current.clear();
@@ -148,19 +127,52 @@ const LanduseMap = forwardRef(function LanduseMap(
       }),
     });
 
-    // popup
+    // popup setup
     popupRef.current = document.createElement("div");
     popupRef.current.className = "ol-popup";
     popupRef.current.style.background = "white";
     popupRef.current.style.padding = "4px";
     popupRef.current.style.border = "1px solid black";
-    popupRef.current.style.minWidth = "120px";
+    popupRef.current.style.minWidth = "150px";
 
     popupOverlayRef.current = new Overlay({
       element: popupRef.current,
       autoPan: { animation: { duration: 250 } },
     });
     map.addOverlay(popupOverlayRef.current);
+
+    // click handler for popup
+    map.on("singleclick", (evt) => {
+      //disable popup if drawing OR no pmtiles
+      if (drawInteractionRef.current || !pmtilesLoadedRef.current) return;
+
+      const features = [];
+      map.forEachFeatureAtPixel(evt.pixel, (feature) => {
+        features.push(feature);
+      });
+
+      if (features.length > 0) {
+        const props = features[0].getProperties();
+        const coord = evt.coordinate;
+
+        const area =
+          props.area != null ? `${Number(props.area).toFixed(2)} m²` : "-";
+
+        popupRef.current.innerHTML = `
+          <div style="font-size:12px">
+            <b>Properties</b><br/>
+            OSM ID: ${props.osm_id || "-"}<br/>
+            Name: ${props.name || "Unnamed"}<br/>
+            Landuse: ${props.landuse_type || "Unknown"}<br/>
+            Leisure: ${props.leisure || "-"}<br/>
+            City: ${props.city || "-"}<br/>
+            Area: ${area}
+          </div>`;
+        popupOverlayRef.current.setPosition(coord);
+      } else {
+        popupOverlayRef.current.setPosition(undefined);
+      }
+    });
 
     mapRef.current = map;
     map.updateSize();
@@ -192,11 +204,13 @@ const LanduseMap = forwardRef(function LanduseMap(
 
     const extent = vectorLayer.getSource().getExtent();
     if (extent && isFinite(extent[0])) {
-      mapRef.current.getView().fit(extent, { padding: [24, 24, 24, 24], duration: 400 });
+      mapRef.current
+        .getView()
+        .fit(extent, { padding: [24, 24, 24, 24], duration: 400 });
     }
   }, [geojsonData]);
 
-  // BBox draw 
+  // BBox draw
   useEffect(() => {
     if (!mapRef.current) return;
 
@@ -236,7 +250,10 @@ const LanduseMap = forwardRef(function LanduseMap(
 
   return (
     <div style={{ width: "100%", height: "100%", position: "relative" }}>
-      <div ref={containerRef} style={{ position: "absolute", inset: 0, background: "#eef" }} />
+      <div
+        ref={containerRef}
+        style={{ position: "absolute", inset: 0, background: "#eef" }}
+      />
     </div>
   );
 });
