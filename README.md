@@ -24,7 +24,7 @@ On the frontend, React + OpenLayers provide efficient rendering of geospatial da
 
 ⚡ Optimization & Challenges
 -------------------------------------------------------------------------------------------------------------------
-One of the main motivations was solving a problem I faced as a GIS analyst:
+One of the main motivations was solving a problem I faced as a GIS Data analyst:
 When downloading OSM data, I often had to fetch large files (e.g., from Geofabrik) and then filter them manually.
 
 This app makes it possible to download only the required data directly in the desired format.
