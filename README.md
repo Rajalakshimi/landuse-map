@@ -49,7 +49,7 @@ Frontend had a bigger learning curve, especially with:
 
 * Drawing and managing bounding boxes (state management issues)
 
-I eventually solved these by [briefly explain fix here → e.g., resetting map state, cursor handling, or global state management].
+I eventually solved these by resetting the map state and cursor handling. I also added better cleanup for interactions and ensured the drawing tools deactivate correctly after applying filters.
 
 🎥 Demo
 ----------------------------------------------------------------------------------------------------------------------------------------------------------
