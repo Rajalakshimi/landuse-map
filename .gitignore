@@ -12,6 +12,8 @@ test_utils.py
 # Don't push data or large files
 data/*.geojson
 
+#Tiles
+app/static/
 
 # Node/React
 node_modules/
@@ -26,3 +28,7 @@ Thumbs.db
 # IDEs
 .vscode/
 .idea/
+
+#docker compose
+docker-compose.yml
+frontend/src/components/LanduseMap1.jsx
