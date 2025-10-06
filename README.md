@@ -52,4 +52,6 @@ Frontend had a bigger learning curve, especially with:
 I eventually solved these by resetting the map state and cursor handling. I also added better cleanup for interactions and ensured the drawing tools deactivate correctly after applying filters.
 
 🎥 Demo
-----------------------------------------------------------------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------------------------------------------------
+<img width="1365" height="603" alt="image" src="https://github.com/user-attachments/assets/e179078b-85dc-432a-a736-8770a7fb0773" />
+
