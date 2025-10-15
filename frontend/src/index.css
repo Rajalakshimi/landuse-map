@@ -2,126 +2,125 @@
 @tailwind components;
 @tailwind utilities;
 
+/* 🔹 Global app styles */
 html, body, #root {
   height: 100%;
   margin: 0;
+  padding: 0;
+  background-color: #111827; 
+  color: #ffffff;            
+  font-family: 'Inter', sans-serif;
 }
 
-@layer base {
-  html {
-    overflow: auto !important;
-    padding: 0 !important;
-  }
+.aside-spacing {
+  margin-left: 20px;  
+  margin-right: 20px;
 }
 
-:root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
-
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
-
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+/* 🔹 Sidebar */
+sidebar {
+  all: unset; 
+  width: 258px;
+  height: 100vh;             
+  background-color: #86b31c; 
+  color: black;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border: none !important;
+  border-radius: 0 !important;  
+  padding: 0 !important;
+  margin-left: 1rem;
 }
-
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
-}
-
-body {
-  margin: 0;
-  min-width: 320px;
-  min-height: 100vh;
-}
-
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
-}
-
+/* 🔹 Buttons */
 button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
-  cursor: pointer;
-  transition: border-color 0.25s;
-}
-button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
-}
-
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
-  }
-  a:hover {
-    color: #747bff;
-  }
-  button {
-    background-color: #f9f9f9;
-  }
-}
-
-[role="listbox"] {
-  background-color: #ffffff !important;
-  border: 1px solid #d1d5db; /* Tailwind's gray-300 */
-  border-radius: 0.375rem;   /* matches rounded-md */
-}
-
-/* Dropdown options */
-[role="option"] {
-  padding: 0.5rem 0.75rem;
-  cursor: pointer;
-}
-
-/* Hover effect */
-[role="option"]:hover {
-  background-color: #06b6d4; /* Tailwind cyan-500 */
+  background-color:  #86b31c; 
   color: white;
+  font-weight: 500;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  transition: background-color 0.2s;
+  margin-right: 0.5rem;
+  margin-top: 0.5rem;
+  margin-left :21px
 }
 
-/* Selected item */
-[role="option"][aria-selected="true"] {
-  background-color: #e0f2fe; /* Tailwind cyan-100 */
-  color: #0e7490;            /* cyan-700 */
-  font-weight: 600;
+button:hover {
+  background-color: #6d9615;
 }
 
-/* Custom Scrollbar for dropdowns only */
-.dropdown-scroll::-webkit-scrollbar {
-  width: 6px;
+/* Special green button */
+button.bg-green {
+  background-color: #059669; 
+}
+button.bg-green:hover {
+  background-color: #047857; 
 }
 
-.dropdown-scroll::-webkit-scrollbar-track {
-  background: #f1f1f1;
-  border-radius: 9999px;
+.toggle-btn {
+  all: unset;
+  width: 62px;
+  height: 100vh;             
+  background-color: #86b31c; 
+  color: black;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border: none !important;
+  border-radius: 0 !important; 
+  padding: 0 !important;
+}
+.toggle-btn:hover {
+  background-color: #6d9615; 
 }
 
-.dropdown-scroll::-webkit-scrollbar-thumb {
-  background: #c1c1c1;
-  border-radius: 9999px;
+
+/* 🔹 Custom dropdown styles */
+.custom-dropdown {
+  background-color: #86b31c !important;
+  color: white !important;
+  border: 1px solid #86b31c;
+  border-radius: 0.5rem;
+  padding: 0.5rem;
+  appearance: none;
+  width: 16rem;
+  margin-left: 21px;
+  margin-bottom: 13px;
 }
 
-.dropdown-scroll::-webkit-scrollbar-thumb:hover {
-  background: #a8a8a8;
+/* 🔹 Dropdown list options */
+.custom-dropdown-option {
+  background-color: #86b31c;
+  color: white;
+  padding: 0.2rem;
+  cursor: pointer;
 }
 
+/* 🔹 Dropdown list container */
+.custom-dropdown-list {
+  position: absolute;
+  left: 21px; 
+  margin-top: 0.15rem;
+  max-height: 15rem;
+  width: 16rem;
+  overflow-y: auto;
+  border-radius: 0.5rem;
+  background-color: #1e293b;
+  border: 0;
+  z-index: 50;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* 🔹 Map container */
+.map {
+  width: 100%;
+  height: 100vh;
+  border-radius: 0;
+  border: none; 
+  box-shadow: none;
+  position: relative;
+}

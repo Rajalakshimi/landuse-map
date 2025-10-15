@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef } from "react";
-import LanduseMap from "./components/LanduseMap";
+import LanduseMap from "./components/LanduseMap1";
 import Sidebar from "./components/SideBar";
+import { FaTimes } from "react-icons/fa";
 
 function App() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -115,9 +116,12 @@ function App() {
   }, [bbox, bundesland, landuseType, geometryType, format]);
 
   return (
-    <div className="flex h-screen">
-      {sidebarOpen && (
-        <div className="w-72 bg-white shadow-md z-10">
+  <div className="flex w-[1364px] h-[590px]">
+    {/* Sidebar wrapper */}
+    {sidebarOpen && (
+      <div className="sidebar">
+        
+          {/* ⬅️ padding is here (p-4), height matches parent (h-full) */}
           <Sidebar
             bundesland={bundesland}
             onBundeslandChange={setBundesland}
@@ -128,24 +132,31 @@ function App() {
             format={format}
             onFormatChange={setFormat}
             onDrawBBox={handleRequestDrawBBox}
-            onClearBBox={() => {               
+            onClearBBox={() => {
               mapRef.current?.clearBBox?.();
               setBbox(null);
             }}
             onApplyFilter={handleApplyFilter}
             onDownload={handleDownload}
           />
-        </div>
-      )}
+        
+      </div>
+    )}
 
+    {/* Vertical toggle bar – full height, no margins so no gaps */}
+    <div className="h-[590px] flex items-start">
       <button
-        onClick={() => setSidebarOpen(!sidebarOpen)}
-        className="m-2 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded shadow text-sm font-semibold"
-      >
-        {sidebarOpen ? "<<" : ">>"}
+          onClick={() => setSidebarOpen(!sidebarOpen)}
+          className="toggle-btn"
+        >
+          {sidebarOpen ? "<<" : ">>"}
       </button>
+    </div>
+    
 
-      <div className="flex-1 h-screen relative">
+    {/* Map */}
+    <main className="flex-1">
+      <div className="map">
         <LanduseMap
           ref={mapRef}
           geojsonData={geojsonData}
@@ -153,20 +164,43 @@ function App() {
           drawTrigger={drawTrigger}
         />
       </div>
+    </main>
 
-      {notification && (
-        <div className="fixed bottom-5 right-5 bg-white border border-gray-300 shadow-lg rounded-lg px-4 py-2 text-sm font-medium text-gray-800 z-[9999]">
-          {notification}
-          <button
+    {/* Notification */}
+    {notification && (
+      <div 
+        
+        className="absolute bottom-5 right-5 border-gray-300 shadow-lg rounded-lg px-4 py-2 text-base font-medium text-gray-800 z-[9999]"
+        style = {{
+          top: "8px",
+          right: "8px",
+          display: "flex",
+          alignItems: "center",       // vertically center items
+          justifyContent: "space-between",
+          gap: "10px",
+          fontSize: "16px",
+        }}
+        >
+        <button
+          onClick={() => setNotification(null)}
+          className="icon-button"    
+        >
+          <span style={{ flex: 2,}}>{notification}</span>
+          <FaTimes
             onClick={() => setNotification(null)}
-            className="ml-3 text-gray-500 hover:text-gray-700 font-bold"
-          >
-            ×
-          </button>
-        </div>
-      )}
-    </div>
-  );
+            style={{
+              cursor: "pointer",
+              color: "white",
+              fontSize: "18px",
+              
+            }}
+            title="Close"
+          />
+        </button>
+      </div>
+    )}
+  </div>
+);
 }
 
 export default App;
