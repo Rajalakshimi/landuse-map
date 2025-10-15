@@ -13,6 +13,7 @@ import { Fill, Stroke, Style } from "ol/style";
 import { PMTilesVectorSource } from "ol-pmtiles";
 import MVT from "ol/format/MVT";
 import { unByKey } from "ol/Observable";
+import { FaDrawPolygon, FaLayerGroup } from "react-icons/fa";
 
 // color by type
 function getColor(props) {
@@ -252,8 +253,25 @@ const LanduseMap = forwardRef(function LanduseMap(
     <div style={{ width: "100%", height: "100%", position: "relative" }}>
       <div
         ref={containerRef}
-        style={{ position: "absolute", inset: 0, background: "#eef" }}
+        style={{ width: "100%", height: "100%", background: "#eef" }}
       />
+      <div 
+        className="absolute top-2 right-2 z-10 flex flex-col rounded-none"
+        style={{ position: "absolute", top: "8px", right: "8px", zIndex: 10 }}
+      >
+        <button
+          className="icon-button"
+          title="Draw BBox"
+        >
+          <FaDrawPolygon />
+        </button>
+        <button
+          className="icon-button"
+          title="Layers"
+        >
+          <FaLayerGroup />
+        </button>
+      </div>
     </div>
   );
 });
